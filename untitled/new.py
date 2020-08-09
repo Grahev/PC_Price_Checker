@@ -2,16 +2,19 @@ import  pandas as pd
 import requests
 from bs4 import  BeautifulSoup
 import csv
+import time
 
-spec_file = 'spec.xlsx'
+spec_file = 'spec.csv'
 link_list =[]
 item_list = []
+timestr = time.strftime("output - %Y-%m-%d.csv")
+
 
 
 #czyta z pliku spec usowa spacje i dodaje do listy
 def get_spec_from_file(file):
     list = []
-    df = pd.read_excel(file)
+    df = pd.read_csv(file)
     list = df['spec'].tolist()
     temp_list = []
     for a in list:
@@ -56,12 +59,12 @@ def get_detail_data(soup):
     print(title)
     #price
     try:
-        price = soup.find('span', class_ = 'POSITIVE').text.replace('£','')
-        float_price = float(price)
+        price = soup.find('span', class_ = 's-item__price').span.text.replace('£','')
+        #float_price = float(price)
     except:
         price = 'price not found'
 
-    print(float_price)
+    print(price)
     #condition
     try:
         condition = soup.find('span', class_ = 'SECONDARY_INFO').text
@@ -92,12 +95,12 @@ def get_detail_data(soup):
     print(postage)
 
     data = {
-        'title': [title],
-        'price': [float(price)],
-        'condition': [condition],
-        'bids': [bids],
-        'date': [date],
-        'postage': [postage]
+        'title': title,
+        'price': price,
+        'condition': condition,
+        'bids': bids,
+        'date': date,
+        'postage': postage
      }
     print(data)
     return data
@@ -108,7 +111,7 @@ def get_all_listings(soup):
 
 
 def write_csv(data):
-    with open('output.csv', 'a') as csvfile:
+    with open(timestr, 'a', encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
 
         row = [data['title'], data['price'], data['condition'], data['bids'], data['date'], data['postage']]
@@ -123,15 +126,17 @@ def main():
     #build ebay search links
     ready_links = ebay_link_create(spec_list)
     print(ready_links)
-    #take first link from list
-    url = ready_links[0]
-    #build list of listings to get detail data
-    listings = get_all_listings(get_page(url))
 
+
+
+
+    for link in ready_links:
+        # build list of listings to get detail data
+        listings = get_all_listings(get_page(link))
     #loop for all listings collect data and save to scv file
-    for item in listings:
-        data = get_detail_data(item)
-        write_csv(data)
+        for item in listings:
+            data = get_detail_data(item)
+            write_csv(data)
 
 
 
