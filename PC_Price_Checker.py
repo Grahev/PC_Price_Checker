@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 import time
+import os
 
 spec_file = 'spec.csv'
 link_list = []
@@ -102,12 +103,47 @@ def get_all_listings(soup):
 
 
 def write_csv(data,id):
-    with open('output/'+id + timestr, 'a', encoding="utf-8") as csvfile:
+
+    with open(f'output/{id}/'+id + timestr, 'a', encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
 
         row = [data['title'], data['price'], data['condition'], data['bids'], data['date'], data['postage']]
 
         writer.writerow(row)
+
+
+#create subfolder to save csv file
+def create_sub_folder(id):
+    folder = f'output/{id}'
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+
+#scan output folder and make file list
+def folder_scan(id):
+    file_list = []
+    for root, dirs, files in os.walk(f"output/{id}"):
+        for filename in files:
+            file_list.append(filename)
+            print(filename)
+        return file_list
+
+
+
+#clean output file
+def clean_data(id):
+    file_list = folder_scan(id)
+    output_df = pd.DataFrame()
+    for file in file_list:
+
+        df = pd.read_csv(f'output/{id}/{file}', names = ['title', 'price', 'condition', 'bids', 'sold date' , 'postage'])
+        remove = df[df['condition'] == "Parts only"].index
+        df.set_index('sold date')
+        df.drop(remove, inplace = True)
+        #print(df.describe()['price'])
+        output_df = output_df.append(df)
+
+    output_df.to_csv(f'{id}.csv')
 
 
 
@@ -120,7 +156,9 @@ def main():
         listings = get_all_listings(get_page(ebay_link))
         for item in listings:
             data = get_detail_data(item)
+            create_sub_folder(id)
             write_csv(data, id)
+        clean_data(id)
 
 
 
