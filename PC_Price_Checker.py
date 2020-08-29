@@ -142,7 +142,8 @@ def clean_data(id):
         df.drop(remove, inplace = True)
         #print(df.describe()['price'])
         output_df = output_df.append(df)
-
+    output_df.drop_duplicates(inplace=True)
+    output_df.sort_values("sold date",ascending=False, inplace=True)
     output_df.to_csv(f'{id}.csv')
 
 
