@@ -4,11 +4,15 @@ from bs4 import BeautifulSoup
 import csv
 import time
 import os
+import matplotlib.pyplot as plt
+import numpy as np
+from datetime import date
 
 spec_file = 'spec.csv'
 link_list = []
 item_list = []
 timestr = time.strftime(" - %Y-%m-%d.csv")
+today = time.strftime(" %d-%m-%Y")
 
 
 # czyta z pliku spec usowa spacje i dodaje do listy
@@ -20,6 +24,7 @@ def get_spec_from_file(file):
 def create_ebay_link(a):
     link = a.replace(' ', '+')
     ebay_link = 'https://www.ebay.co.uk/sch/i.html?_from=R40&_nkw=' + link + '&_sacat=0&rt=nc&LH_Sold=1&LH_Complete=1'
+    
     return ebay_link
 
 
@@ -128,6 +133,18 @@ def folder_scan(id):
             print(filename)
         return file_list
 
+def main_folder_scan(id):
+    file_list = []
+    for root, dirs, files in os.walk(f"."):
+        for filename in files:
+            if filename == 'spec.csv':
+                print('spec file pass')
+            else:
+                if filename.endswith('.csv'):
+                    file_list.append(filename)
+                    print(filename)
+        return file_list
+
 
 
 #clean output file
@@ -147,6 +164,38 @@ def clean_data(id):
     output_df.to_csv(f'{id}.csv')
 
 
+def plot_test(file):
+    id = get_spec_from_file(file)
+    file_list = main_folder_scan(id)
+    #output_df = pd.DataFrame()
+    for file in file_list:
+        id = file
+        id = id.split(".")[0]
+        print(id)
+        df = pd.read_csv(f'{file}')
+        print(df.info())
+        print(df.head(5))
+
+
+        df['sold date'] = pd.to_datetime(df['sold date'], format='%d-%b %H:%M')
+        df['sold date'] = df['sold date'].map(lambda x: x.replace(year=2020))
+        df['date'] = [d.date() for d in df['sold date']]
+        df['time'] = [d.time() for d in df['sold date']]
+
+
+        plt.hist(df['price'])
+        plt.xlabel('price in £')
+        plt.title(f'{id}{today}')
+        plt.savefig(f'{id}{today}_plot.png')
+        plt.show()
+        df['sold date'] = df.sort_values(['sold date'])
+        df.to_csv(f'output/{id}_clean.csv', index=False)
+        df = df.iloc[0:0]
+        print(df.info())
+
+
+
+
 
 def main():
     item_list = get_spec_from_file(spec_file)
@@ -160,10 +209,12 @@ def main():
             create_sub_folder(id)
             write_csv(data, id)
         clean_data(id)
+    plot_test(spec_file)
 
 
 
-
+def test():
+    plot_test(spec_file)
 
 
 if __name__ == '__main__':
